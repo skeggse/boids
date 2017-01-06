@@ -87,14 +87,14 @@
           "msvs_cygwin_shell": 0,
           "variables": {
             "shader_files": [
-              "shaders/boidvertex.vert",
               "shaders/boidgeometry.geom",
-              "shaders/flatfragment.frag",
+              "shaders/boidvertex.vert",
               "shaders/cellcounts.comp",
-              "shaders/spreadcounts.comp",
+              "shaders/flatfragment.frag",
               "shaders/index.comp",
-              "shaders/spreadindex.comp",
-              "shaders/move.comp"
+              "shaders/move.comp",
+              "shaders/spreadcounts.comp",
+              "shaders/spreadindex.comp"
             ]
           },
           "inputs": [
