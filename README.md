@@ -18,6 +18,7 @@ dependencies:
 - [Python](https://www.python.org/) 3 to pack the shaders into the binary
 - [FreeGLUT](http://freeglut.sourceforge.net/) or similar
 - [GLEW](http://glew.sourceforge.net/)
+- OpenGL 4.3.0 or higher
 
 ### linux
 
@@ -35,6 +36,10 @@ $ gyp boids.gyp -f msvs --depth=. --generator-output out
 # you can also open this in Visual Studio and Build from there
 $ msbuild out\boids.vcxproj
 ```
+
+### mac
+
+You're out of luck. Apple doesn't support anything greater than OpenGL 4.1 with a few 4.2 extensions on any versions of OS X.
 
 running
 -------
