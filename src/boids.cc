@@ -609,7 +609,7 @@ static void displayInfo(const int argc, char * const argv[]) {
     cout << "Report bugs at https://github.com/skeggse/boids" << endl;
     exit(EXIT_SUCCESS);
   } else if (strcmp(argv[1], "--version") == 0) {
-    cout << "boids v1.0" << endl;
+    cout << "boids v1.1" << endl;
     exit(EXIT_SUCCESS);
   }
 }
