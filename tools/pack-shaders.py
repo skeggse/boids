@@ -5,13 +5,18 @@ from sys import argv
 
 import itertools, subprocess
 
-dest = argv[1]
-src = itertools.islice(argv, 2, len(argv))
+if len(argv) < 3:
+  print('usage: pack-shaders.py <c preprocessor command> <output directory> [<source> ...]')
+  exit(1)
+
+cpp = argv[1].split(' ')
+dest = argv[2]
+src = itertools.islice(argv, 3, len(argv))
 
 def getsource(source):
   path, name = source
   yield b'const char %b_source[] = "' % name.encode()
-  proc = subprocess.Popen(["cl", "-EP", path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+  proc = subprocess.Popen(cpp + [path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
   while True:
     chunk = proc.stdout.read(1024)
     yield b''.join(b'\\x%02x' % b for b in chunk)

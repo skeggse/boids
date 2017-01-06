@@ -2,7 +2,9 @@
   "conditions": [
     ["OS=='win'", {
       "variables": {
-        "lib_platform%": "Win32"
+        "lib_platform%": "Win32",
+        # must be space-delimited
+        "cpreprocessor": "cl -EP"
       },
       "target_defaults": {
         "default_configuration": "Release_x64",
@@ -28,6 +30,10 @@
         }
       }
     }, {
+      "variables": {
+        # must be space-delimited
+        "cpreprocessor": "cpp -P"
+      },
       "target_defaults": {
         "default_configuration": "Release",
         "configurations": {
@@ -107,7 +113,7 @@
             "<(INTERMEDIATE_DIR)/s/boids-shaders.cc",
             "<(INTERMEDIATE_DIR)/s/boids-shaders.h"
           ],
-          "action": ["python", "tools/pack-shaders.py", "<(INTERMEDIATE_DIR)/s", "<@(shader_files)"]
+          "action": ["python", "tools/pack-shaders.py", "<(cpreprocessor)", "<(INTERMEDIATE_DIR)/s", "<@(shader_files)"]
         }
       ],
       "include_dirs": [
