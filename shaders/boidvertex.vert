@@ -1,17 +1,4 @@
-#version 430 core
-
-layout (std140, binding = 0) uniform SimParams {
-  mat4 projection;
-  vec2 winScale;
-  uvec2 cellCounts;
-  uint numBoids, cellCount;
-  float cellSize, mapRatio,
-    edgeDist, edgeFactor,
-    separateDist2, separateFactor,
-    alignDist2, alignFactor,
-    attractDist2, attractFactor,
-    maxSpeed;
-};
+#include "../src/uniforms.h"
 
 in vec4 position;
 

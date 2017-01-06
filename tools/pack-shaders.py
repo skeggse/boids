@@ -3,21 +3,21 @@
 from os.path import abspath, basename, join, splitext
 from sys import argv
 
-import itertools
+import itertools, subprocess
 
 dest = argv[1]
 src = itertools.islice(argv, 2, len(argv))
 
 def getsource(source):
   path, name = source
-  with open(path, 'rb') as file:
-    yield b'const char %b_source[] = "' % name.encode()
-    while True:
-      chunk = file.read(1024)
-      yield b''.join(b'\\x%02x' % b for b in chunk)
-      if len(chunk) < 1024:
-        break
-    yield b'";\n'
+  yield b'const char %b_source[] = "' % name.encode()
+  proc = subprocess.Popen(["cl", "-EP", path], stdout=subprocess.PIPE)
+  while True:
+    chunk = proc.stdout.read(1024)
+    yield b''.join(b'\\x%02x' % b for b in chunk)
+    if len(chunk) < 1024 and proc.poll() is not None:
+      break
+  yield b'";\n'
 
 def getsources(sources):
   return itertools.chain.from_iterable(map(getsource, sources))

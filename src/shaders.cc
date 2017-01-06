@@ -94,7 +94,8 @@ namespace Angel {
 
   void attachShader(const GLuint program, const GLenum type, const char *source) {
     GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, (const GLchar**) &source, NULL);
+    const GLchar *sources[] = {"#version 430 core\n", (const GLchar*) source};
+    glShaderSource(shader, 2, sources, NULL);
     glCompileShader(shader);
 
     printShaderInfoLog(shader);

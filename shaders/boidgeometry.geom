@@ -1,20 +1,7 @@
-#version 430 core
+#include "../src/uniforms.h"
 
 layout (points) in;
 layout (triangle_strip, max_vertices = 3) out;
-
-layout (std140, binding = 0) uniform SimParams {
-  mat4 projection;
-  vec2 winScale;
-  uvec2 cellCounts;
-  uint numBoids, cellCount;
-  float cellSize, mapRatio,
-    edgeDist, edgeFactor,
-    separateDist2, separateFactor,
-    alignDist2, alignFactor,
-    attractDist2, attractFactor,
-    maxSpeed;
-};
 
 in VOut {
     vec3 vColor;

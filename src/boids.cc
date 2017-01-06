@@ -25,7 +25,7 @@
 using namespace std;
 
 static struct State {
-  Uniforms params;
+  Params params;
   Buffers buffers;
   GLuint vao[2];
   GLuint queries[7];
