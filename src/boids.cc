@@ -41,6 +41,7 @@ static struct State {
   range *ranges;
 
   GLuint boidDispatch, cellDispatch, minorCellDispatch;
+  GLuint nextQueryNum;
 
   // settings
   bool paused, lockFramerate, printTiming, changingNumBoids;
@@ -58,6 +59,7 @@ static struct State {
   int lastDistW, lastDistH;
 
   State(const bool predictable) : offsets(NULL), ranges(NULL),
+      nextQueryNum(0),
       timerActive(false), frameOffset(0),
       uniform_angle(0, GLfloat(2 * M_PI)), lastDistW(0), lastDistH(0) {
     if (predictable) {
@@ -88,9 +90,9 @@ static boid randomBoid() {
   return b;
 }
 
-static void queryTime(GLuint n) {
-  if (state.printTiming) {
-    glQueryCounter(state.queries[n], GL_TIMESTAMP);
+static void queryTime() {
+  if (state.printTiming && state.nextQueryNum < arraySize(state.queries)) {
+    glQueryCounter(state.queries[state.nextQueryNum++], GL_TIMESTAMP);
   }
 }
 
@@ -106,13 +108,13 @@ static void printTiming() {
     // immediately
     GLint done;
     do {
-      glGetQueryObjectiv(state.queries[arraySize(state.queries) - 1], GL_QUERY_RESULT_AVAILABLE, &done);
+      glGetQueryObjectiv(state.queries[state.nextQueryNum - 1], GL_QUERY_RESULT_AVAILABLE, &done);
     } while (!done);
 
     GLuint64 first, last;
     glGetQueryObjectui64v(state.queries[0], GL_QUERY_RESULT, &first);
     last = first;
-    for (uintptr_t i = 1; i < arraySize(state.queries); ++i) {
+    for (uintptr_t i = 1; i < state.nextQueryNum; ++i) {
       GLuint64 now;
       glGetQueryObjectui64v(state.queries[i], GL_QUERY_RESULT, &now);
       writeNsAsMs(cout, now - last);
@@ -122,6 +124,8 @@ static void printTiming() {
     cout << "(total: ";
     writeNsAsMs(cout, last - first);
     cout << "ms)" << endl;
+
+    state.nextQueryNum = 0;
   }
 }
 
@@ -221,7 +225,7 @@ static void update() {
 
   GLuint cellCount = state.params.cellCount;
 
-  queryTime(0);
+  queryTime();
 
   state.buffers.counts.clear();
 
@@ -229,7 +233,7 @@ static void update() {
   glDispatchCompute(state.boidDispatch, 1, 1);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-  queryTime(1);
+  queryTime();
 
   state.buffers.ranges.clear();
 
@@ -237,7 +241,7 @@ static void update() {
   glDispatchCompute(state.minorCellDispatch, 1, 1);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-  queryTime(2);
+  queryTime();
 
   state.buffers.ranges.read(state.ranges);
 
@@ -251,25 +255,25 @@ static void update() {
   state.buffers.ranges.write(state.ranges, sizeof(range) * cellCount);
   state.buffers.offsets.write(state.offsets, sizeof(GLuint) * cellCount);
 
-  queryTime(3);
+  queryTime();
 
   glUseProgram(programs.index);
   glDispatchCompute(state.boidDispatch, 1, 1);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-  queryTime(4);
+  queryTime();
 
   glUseProgram(programs.spreadIndex);
   glDispatchCompute(state.cellDispatch, 1, 1);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-  queryTime(5);
+  queryTime();
 
   glUseProgram(programs.move);
   glDispatchCompute(state.boidDispatch, 1, 1);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-  queryTime(6);
+  queryTime();
   printTiming();
 
   state.activeBuffer ^= 1;
