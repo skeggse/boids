@@ -11,7 +11,7 @@ src = itertools.islice(argv, 2, len(argv))
 def getsource(source):
   path, name = source
   yield b'const char %b_source[] = "' % name.encode()
-  proc = subprocess.Popen(["cl", "-EP", path], stdout=subprocess.PIPE)
+  proc = subprocess.Popen(["cl", "-EP", path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
   while True:
     chunk = proc.stdout.read(1024)
     yield b''.join(b'\\x%02x' % b for b in chunk)
