@@ -28,8 +28,8 @@ void main() {
 
   uint destCellNum = (cellNum + y % 3 - 1 + (y / 3 - 1) * cellCounts.x + cellCount) % cellCount;
   uint count = boidCounts[cellNum],
-	srcOffset = boidRanges[cellNum * 2],
-	destOffset = atomicAdd(boidOffsets[destCellNum], count);
+    srcOffset = boidRanges[cellNum * 2],
+    destOffset = atomicAdd(boidOffsets[destCellNum], count);
 
   for (uint i = 0; i < count; ++i) {
     boidIndex[destOffset + i] = boidIndex[srcOffset + i];

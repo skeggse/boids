@@ -47,8 +47,8 @@ void main() {
     float dist2 = dot(diff, diff);
 
     // we have to use mix because division by zero would give us infinity, and
-	// we need to avoid that entirely - this happens when i == j, and rarely
-	// otherwise
+    // we need to avoid that entirely - this happens when i == j, and rarely
+    // otherwise
     vel += mix(diff * (separateFactor / dist2), vec2(0.0f, 0.0f), dist2 == 0.0f || dist2 > separateDist2);
 
     // alignDist < dist2 ? 0.0f : 1.0f
@@ -56,7 +56,7 @@ void main() {
     alignCount += isNear;
     align += otherVel * isNear;
 
-	// TODO: don't run this line when alignDist2 == attractDist2
+    // TODO: don't run this line when alignDist2 == attractDist2
     isNear = step(dist2, attractDist2);
     attractCount += isNear;
     attract += otherLoc * isNear;

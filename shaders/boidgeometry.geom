@@ -4,7 +4,7 @@ layout (points) in;
 layout (triangle_strip, max_vertices = 3) out;
 
 in VOut {
-    vec3 vColor;
+  vec3 vColor;
 } gs_in[];
 
 flat out vec3 fColor;
