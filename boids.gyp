@@ -1,20 +1,29 @@
 {
   "conditions": [
     ["OS=='win'", {
+      "variables": {
+        "lib_platform%": "Win32"
+      },
       "target_defaults": {
         "default_configuration": "Release_x64",
         "configurations": {
           "Debug_x32": {
-            "msvs_configuration_platform": "Win32",
+            "msvs_configuration_platform": "Win32"
           },
           "Debug_x64": {
             "msvs_configuration_platform": "x64",
+            "variables": {
+              "lib_platform": "x64"
+            }
           },
           "Release_x32": {
-            "msvs_configuration_platform": "Win32",
+            "msvs_configuration_platform": "Win32"
           },
           "Release_x64": {
             "msvs_configuration_platform": "x64",
+            "variables": {
+              "lib_platform": "x64"
+            }
           }
         }
       }
@@ -73,6 +82,9 @@
       "actions": [
         {
           "action_name": "pack_shaders",
+          # looks like this disables a hidden "feature" whereby gyp runs things
+          # with cygwin
+          "msvs_cygwin_shell": 0,
           "variables": {
             "shader_files": [
               "shaders/boidvertex.vert",
@@ -96,21 +108,50 @@
           "action": ["python", "tools/pack-shaders.py", "<(INTERMEDIATE_DIR)", "<@(shader_files)"]
         }
       ],
-      "link_settings": {
-        "libraries": [
-          "-lm",
-          "-lGL",
-          "-lglut",
-          "-lGLEW"
-        ]
-      },
       "include_dirs": [
-        "include",
         "<(INTERMEDIATE_DIR)"
       ],
       "conditions": [
         ["OS=='linux'", {
           "cflags": ["-Wall"]
+        }],
+        ["OS=='win'", {
+          "defines": ["NOMINMAX"],
+          "copies": [
+            {
+              "destination": "<(PRODUCT_DIR)",
+              "files": [
+                "dependencies/freeglut/freeglut.dll",
+                "dependencies/glew/bin/Release/<(lib_platform)/glew32.dll"
+              ]
+            }
+          ],
+          "include_dirs": [
+            "dependencies/freeglut/include",
+            "dependencies/glew/include"
+          ],
+          "link_settings": {
+            "libraries": [
+              "-lfreeglut",
+              "-lglew32",
+              "-lglew32s",
+              "-lopengl32",
+              "-lglu32"
+            ],
+            "library_dirs": [
+              "dependencies/freeglut/lib",
+              "dependencies/glew/lib/Release/<(lib_platform)"
+            ]
+          }
+        }, {
+          "link_settings": {
+            "libraries": [
+              "-lm",
+              "-lGL",
+              "-lglut",
+              "-lGLEW"
+            ]
+          },
         }]
       ]
     }

@@ -31,7 +31,9 @@ $ make
 Check out the [prebuilt binary](https://github.com/skeggse/boids/releases) copy of this application.
 
 ```sh
-$ gyp boids.gyp -f msvs --depth=.
+$ gyp boids.gyp -f msvs --depth=. --generator-output out
+# you can also open this in Visual Studio and Build from there
+$ msbuild out\boids.vcxproj
 ```
 
 running
@@ -42,6 +44,10 @@ running
 ```sh
 $ ./out/Release/boids
 ```
+
+### windows
+
+Run `boids.exe` in the `out` directory from the "building" step.
 
 license
 -------
