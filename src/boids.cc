@@ -593,11 +593,17 @@ static void displayInfo(const int argc, char * const argv[]) {
     cout << "--version  display version information" << endl << endl;
     cout << "use the following keys to control the simuation during execution:" << endl;
     cout << "ESC  quit the application" << endl;
+    cout << "'b'  change the number of boids - press b, type an ordinal number," << endl;
+    cout << "     and press enter" << endl;
     cout << "'c'  toggle the printing of compute timings" << endl;
     cout << "'f'  toggle framerate locking between unlimited and " << (1000.0f / FRAME_RATE) << " fps" << endl;
     cout << "'k'  mark the current frame, and print the average fps since the last marked" << endl;
     cout << "     frame" << endl;
     cout << "'p'  pause or play the simulation" << endl;
+    cout << "'s'  switch between implementations, by subsequently pressing one of:" << endl;
+    cout << "     'b'  brute force implementation" << endl;
+    cout << "     'i'  spatial indexing implementation" << endl;
+    cout << "     's'  preaggregated spatial indexing implementation" << endl;
     cout << "'t'  pause, and advance the simulation by one frame" << endl << endl;
     cout << "This application depends on OpenGL 4.3.0 or higher." << endl;
     cout << "Report bugs at https://github.com/skeggse/boids" << endl;
