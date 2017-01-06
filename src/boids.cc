@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <bitset>
 #include <iomanip>
 #include <iostream>
 #include <random>
@@ -13,16 +14,19 @@
 #include "boids-shaders.h"
 
 #define KEY_ESCAPE 0x1b
+#define KEY_ENTER 0xd
 #define FRAME_RATE 60
 #define MAX_SPEED 7
 
-#define NUM_BOIDS 25000
+#define NUM_BOIDS 100
 
 // the simulation is actually nondeterministic, but this will ensure the start
 // positions of the boids are predictable
 #define PREDICTABLE true
 
 using namespace std;
+
+bitset<0x100> keysPressed;
 
 static struct State {
   Params params;
@@ -39,7 +43,8 @@ static struct State {
   GLuint boidDispatch, cellDispatch, minorCellDispatch;
 
   // settings
-  bool paused, lockFramerate, printTiming;
+  bool paused, lockFramerate, printTiming, changingNumBoids;
+  GLuint numBoidsIn;
 
   bool timerActive;
 
@@ -150,7 +155,6 @@ static void initParams() {
 }
 
 static void allocateCellBuffers() {
-  state.boidDispatch = divUp(state.params.numBoids, 128);
   state.cellDispatch = divUp(state.params.cellCount, 128);
   state.minorCellDispatch = divUp(state.params.cellCount, 64);
 
@@ -164,6 +168,21 @@ static void allocateCellBuffers() {
 
   state.offsets = new GLuint[state.params.cellCount];
   state.ranges = new range[state.params.cellCount];
+}
+
+static void allocateBoidBuffers() {
+  state.boidDispatch = divUp(state.params.numBoids, 128);
+
+  state.buffers.index.write(NULL, sizeof(GLuint) * state.params.numBoids * 9);
+}
+
+static void resizeBoidBuffers() {
+  state.buffers.boid[state.activeBuffer ^ 1].write(NULL, sizeof(boid) * state.params.numBoids);
+  state.buffers.boid[state.activeBuffer ^ 1].copyFrom(state.buffers.boid[state.activeBuffer]);
+  state.buffers.boid[state.activeBuffer].write(NULL, sizeof(boid) * state.params.numBoids);
+  state.activeBuffer ^= 1;
+
+  allocateBoidBuffers();
 }
 
 static void resize(int width, int height) {
@@ -301,6 +320,8 @@ static void timerCallback(int value) {
 }
 
 static void keyboardCallback(unsigned char key, int x, int y) {
+  keysPressed[key] = 1;
+
   switch (key) {
   case KEY_ESCAPE:
     glutLeaveMainLoop();
@@ -336,6 +357,48 @@ static void keyboardCallback(unsigned char key, int x, int y) {
     break;
   case 'c':
     state.printTiming = !state.printTiming;
+    break;
+  case 'b':
+    state.changingNumBoids = !state.changingNumBoids;
+    if (state.changingNumBoids) {
+      state.numBoidsIn = 0;
+    }
+    break;
+  case '0':
+  case '1':
+  case '2':
+  case '3':
+  case '4':
+  case '5':
+  case '6':
+  case '7':
+  case '8':
+  case '9':
+    if (state.changingNumBoids) {
+      state.numBoidsIn = state.numBoidsIn * 10 + (key - '0');
+      cout << "numBoidsIn: " << state.numBoidsIn << endl;
+    }
+    break;
+  case KEY_ENTER:
+    if (state.changingNumBoids) {
+      state.changingNumBoids = false;
+      GLuint oldNumBoids = state.params.numBoids;
+      state.params.numBoids = state.numBoidsIn;
+      resizeBoidBuffers();
+      if (state.params.numBoids > oldNumBoids) {
+        GLuint newBoids = state.params.numBoids - oldNumBoids;
+        cout << "newBoids: " << newBoids << endl;
+
+        boid *boids = new boid[newBoids];
+        for (GLuint i = 0; i < newBoids; ++i) {
+          boids[i] = randomBoid();
+        }
+
+        state.buffers.boid[state.activeBuffer].write(boids, sizeof(boid) * oldNumBoids, sizeof(boid) * newBoids);
+        delete[] boids;
+      }
+      state.buffers.uniform.write(&state.params, sizeof(state.params));
+    }
     break;
   }
 }
@@ -411,7 +474,7 @@ static void setup() {
 
   state.buffers.boid[0].write(boids, sizeof(boid) * numBoids);
   state.buffers.boid[1].write(NULL, sizeof(boid) * numBoids);
-  state.buffers.index.write(NULL, sizeof(GLuint) * numBoids * 9);
+  allocateBoidBuffers();
 
   delete[] boids;
 

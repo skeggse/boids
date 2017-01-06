@@ -1,6 +1,7 @@
 #pragma once
 
-#include <ostream>
+#include <algorithm>
+#include <iostream>
 
 #include "Angel.h"
 
@@ -87,10 +88,42 @@ struct Buffer {
     }
   }
 
+  void write(const void *data, const GLintptr offset, const GLsizeiptr size) {
+    if (!initialized || offset + size > this->size) {
+      std::cerr << "invalid write(offset, size) call" << std::endl;
+      abort();
+    }
+    bind();
+    glBufferSubData(target, offset, size, data);
+  }
+
   void read(void * const data) {
     if (!initialized) return;
     bind();
     glGetBufferSubData(target, 0, size, data);
+  }
+
+  void copyFrom(Buffer &other) {
+    if (!other.initialized) {
+      std::cerr << "invalid copyFrom() call" << std::endl;
+      abort();
+    }
+    if (!initialized) {
+      write(NULL, other.size);
+      copyFrom(other, 0, 0, other.size);
+    } else {
+      copyFrom(other, 0, 0, std::min({size, other.size}));
+    }
+  }
+
+  void copyFrom(Buffer &other, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size) {
+    if (!initialized || size > this->size || size > other.size) {
+      std::cerr << "invalid copyFrom(offsets, size) call" << std::endl;
+      abort();
+    }
+    bindTo(GL_COPY_WRITE_BUFFER);
+    other.bindTo(GL_COPY_READ_BUFFER);
+    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, readOffset, writeOffset, size);
   }
 };
 
