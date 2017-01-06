@@ -77,7 +77,7 @@
         "src/boids.cc",
         "src/shaders.cc",
         "src/util.cc",
-        "<(INTERMEDIATE_DIR)/boids-shaders.cc"
+        "<(INTERMEDIATE_DIR)/s/boids-shaders.cc"
       ],
       "actions": [
         {
@@ -104,14 +104,14 @@
             "<@(shader_files)"
           ],
           "outputs": [
-            "<(INTERMEDIATE_DIR)/boids-shaders.cc",
-            "<(INTERMEDIATE_DIR)/boids-shaders.h"
+            "<(INTERMEDIATE_DIR)/s/boids-shaders.cc",
+            "<(INTERMEDIATE_DIR)/s/boids-shaders.h"
           ],
-          "action": ["python", "tools/pack-shaders.py", "<(INTERMEDIATE_DIR)", "<@(shader_files)"]
+          "action": ["python", "tools/pack-shaders.py", "<(INTERMEDIATE_DIR)/s", "<@(shader_files)"]
         }
       ],
       "include_dirs": [
-        "<(INTERMEDIATE_DIR)"
+        "<(INTERMEDIATE_DIR)/s"
       ],
       "conditions": [
         ["OS=='linux'", {
