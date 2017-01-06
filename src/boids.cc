@@ -28,6 +28,12 @@ using namespace std;
 
 bitset<0x100> keysPressed;
 
+enum Impl {
+  BRUTE,
+  INDEX,
+  SPREAD_INDEX
+};
+
 static struct State {
   Params params;
   Buffers buffers;
@@ -44,13 +50,16 @@ static struct State {
   GLuint nextQueryNum;
 
   // settings
-  bool paused, lockFramerate, printTiming, changingNumBoids;
+  bool paused, lockFramerate, printTiming,
+    changingNumBoids, changingImpl;
   GLuint numBoidsIn;
 
   bool timerActive;
 
   uint32_t lastTime;
   uint64_t frameOffset;
+
+  enum Impl impl;
 
   random_device random_dev;
   default_random_engine random_eng;
@@ -60,7 +69,7 @@ static struct State {
 
   State(const bool predictable) : offsets(NULL), ranges(NULL),
       nextQueryNum(0),
-      timerActive(false), frameOffset(0),
+      timerActive(false), frameOffset(0), impl(SPREAD_INDEX),
       uniform_angle(0, GLfloat(2 * M_PI)), lastDistW(0), lastDistH(0) {
     if (predictable) {
       random_eng = default_random_engine();
@@ -177,7 +186,10 @@ static void allocateCellBuffers() {
 static void allocateBoidBuffers() {
   state.boidDispatch = divUp(state.params.numBoids, 128);
 
-  state.buffers.index.write(NULL, sizeof(GLuint) * state.params.numBoids * 9);
+  if (state.impl != BRUTE) {
+    GLsizeiptr factor = 1 + 8 * (state.impl == SPREAD_INDEX);
+    state.buffers.index.write(NULL, sizeof(GLuint) * state.params.numBoids * factor);
+  }
 }
 
 static void resizeBoidBuffers() {
@@ -227,51 +239,98 @@ static void update() {
 
   queryTime();
 
-  state.buffers.counts.clear();
-
-  glUseProgram(programs.cellCounts);
-  glDispatchCompute(state.boidDispatch, 1, 1);
-  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-  queryTime();
-
-  state.buffers.ranges.clear();
-
-  glUseProgram(programs.spreadCounts);
-  glDispatchCompute(state.minorCellDispatch, 1, 1);
-  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-  queryTime();
-
-  state.buffers.ranges.read(state.ranges);
-
-  GLuint rollingOffset = 0;
-  for (uintptr_t i = 0; i < cellCount; ++i) {
-    state.offsets[i] = rollingOffset;
-    state.ranges[i].offset = rollingOffset;
-    rollingOffset += state.ranges[i].count;
+  switch (state.impl) {
+  case BRUTE: {
+    glUseProgram(programs.bruteMove);
+    glDispatchCompute(state.boidDispatch, 1, 1);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    break;
   }
+  case INDEX: {
+    state.buffers.counts.clear();
 
-  state.buffers.ranges.write(state.ranges, sizeof(range) * cellCount);
-  state.buffers.offsets.write(state.offsets, sizeof(GLuint) * cellCount);
+    glUseProgram(programs.cellCounts);
+    glDispatchCompute(state.boidDispatch, 1, 1);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-  queryTime();
+    queryTime();
 
-  glUseProgram(programs.index);
-  glDispatchCompute(state.boidDispatch, 1, 1);
-  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    GLuint *counts = (GLuint*) state.ranges;
+    state.buffers.counts.read(counts);
 
-  queryTime();
+    GLuint rollingOffset = 0;
+    for (uintptr_t i = 0; i < cellCount; ++i) {
+      state.offsets[i] = rollingOffset;
+      rollingOffset += counts[i];
+    }
 
-  glUseProgram(programs.spreadIndex);
-  glDispatchCompute(state.cellDispatch, 1, 1);
-  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    state.buffers.offsets.write(state.offsets, sizeof(GLuint) * cellCount);
 
-  queryTime();
+    queryTime();
 
-  glUseProgram(programs.move);
-  glDispatchCompute(state.boidDispatch, 1, 1);
-  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    glUseProgram(programs.index);
+    glDispatchCompute(state.boidDispatch, 1, 1);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    // write it again because index mutates the offsets
+    state.buffers.offsets.write(state.offsets, sizeof(GLuint) * cellCount);
+
+    queryTime();
+
+    glUseProgram(programs.scanMove);
+    glDispatchCompute(state.boidDispatch, 1, 1);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    break;
+  }
+  case SPREAD_INDEX: {
+    state.buffers.counts.clear();
+
+    glUseProgram(programs.cellCounts);
+    glDispatchCompute(state.boidDispatch, 1, 1);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    queryTime();
+
+    state.buffers.ranges.clear();
+
+    glUseProgram(programs.spreadCounts);
+    glDispatchCompute(state.minorCellDispatch, 1, 1);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    queryTime();
+
+    state.buffers.ranges.read(state.ranges);
+
+    GLuint rollingOffset = 0;
+    for (uintptr_t i = 0; i < cellCount; ++i) {
+      state.offsets[i] = rollingOffset;
+      state.ranges[i].offset = rollingOffset;
+      rollingOffset += state.ranges[i].count;
+    }
+
+    state.buffers.ranges.write(state.ranges, sizeof(range) * cellCount);
+    state.buffers.offsets.write(state.offsets, sizeof(GLuint) * cellCount);
+
+    queryTime();
+
+    glUseProgram(programs.index);
+    glDispatchCompute(state.boidDispatch, 1, 1);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    queryTime();
+
+    glUseProgram(programs.spreadIndex);
+    glDispatchCompute(state.cellDispatch, 1, 1);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    queryTime();
+
+    glUseProgram(programs.move);
+    glDispatchCompute(state.boidDispatch, 1, 1);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    break;
+  }
+  }
 
   queryTime();
   printTiming();
@@ -279,6 +338,13 @@ static void update() {
   state.activeBuffer ^= 1;
 
   glutPostRedisplay();
+}
+
+static void changeImpl(enum Impl impl) {
+  if (impl == state.impl) return;
+
+  state.impl = impl;
+  allocateBoidBuffers();
 }
 
 static void timerCallback(int value);
@@ -362,7 +428,25 @@ static void keyboardCallback(unsigned char key, int x, int y) {
   case 'c':
     state.printTiming = !state.printTiming;
     break;
+  case 's':
+    state.changingImpl = !state.changingImpl;
+    if (!state.changingImpl) {
+      // we pressed 's' twice
+      changeImpl(SPREAD_INDEX);
+    }
+    break;
+  case 'i':
+    if (state.changingImpl) {
+      state.changingImpl = false;
+      changeImpl(INDEX);
+    }
+    break;
   case 'b':
+    if (state.changingImpl) {
+      state.changingImpl = false;
+      changeImpl(BRUTE);
+      break;
+    }
     state.changingNumBoids = !state.changingNumBoids;
     if (state.changingNumBoids) {
       state.numBoidsIn = 0;
@@ -429,6 +513,14 @@ static void setupPrograms() {
   programs.spreadIndex = glCreateProgram();
   attachShader(programs.spreadIndex, GL_COMPUTE_SHADER, spreadindex_source);
   linkProgram(programs.spreadIndex);
+
+  programs.bruteMove = glCreateProgram();
+  attachShader(programs.bruteMove, GL_COMPUTE_SHADER, brutemove_source);
+  linkProgram(programs.bruteMove);
+
+  programs.scanMove = glCreateProgram();
+  attachShader(programs.scanMove, GL_COMPUTE_SHADER, scanmove_source);
+  linkProgram(programs.scanMove);
 
   programs.move = glCreateProgram();
   attachShader(programs.move, GL_COMPUTE_SHADER, move_source);

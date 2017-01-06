@@ -89,10 +89,12 @@
             "shader_files": [
               "shaders/boidgeometry.geom",
               "shaders/boidvertex.vert",
+              "shaders/brutemove.comp",
               "shaders/cellcounts.comp",
               "shaders/flatfragment.frag",
               "shaders/index.comp",
               "shaders/move.comp",
+              "shaders/scanmove.comp",
               "shaders/spreadcounts.comp",
               "shaders/spreadindex.comp"
             ]

@@ -28,6 +28,7 @@ struct Buffers {
 };
 
 struct {
-  GLuint draw, cellCounts, spreadCounts, index, spreadIndex, move;
+  GLuint draw, cellCounts, spreadCounts, index, spreadIndex,
+    bruteMove, scanMove, move;
 } programs;
 #pragma pack(pop)

@@ -3,9 +3,7 @@ boids
 
 A gpu-accelerated implementation of a flocking algorithm.
 
-This application implements the boids flocking model, as designed by [Craig Reynolds](http://www.red3d.com/cwr/boids/), and borrows constants from Andrew Merrill.
-
-Also implements a gpu-accelerated spatial indexing algorithm.
+This application implements a gpu-accelerated flocking model, dubbed boids. [Craig Reynolds](http://www.red3d.com/cwr/boids/) originally designed the model, and this implementation borrows constants from Andrew Merrill.
 
 Includes portions of supplementary code from Interactive Computer Graphics, Sixth Edition by Edward Angel and Dave Shreiner. These portions of code are licensed under the MIT license.
 
@@ -53,6 +51,33 @@ $ ./out/Release/boids
 ### windows
 
 Run `boids.exe` in the `out` directory from the "building" step.
+
+design
+------
+
+This application extends the basic algorithm described by Craig Reynolds. All algorithms are written mostly or entirely in compute shaders, and run on available GPU hardware.
+
+### brute force
+
+The brute force implementation measures the distance between each pair of boids twice - once for each boid. This performs at O(N<sup>2</sup>).
+
+Switch to this implementation by pressing `s` then `b`.
+
+### spatial indexing
+
+The spatial indexing implementation breaks the simulation world into axis-aligned cells, where each cell is size of the largest radius of influence. The cell then stores the number and list of boids within its bounds. This means that any boid need only look at the nine cells centered around its current cell to find all boids that could influence its movement.
+
+OpenGL's compute shaders have no support for dynamic memory allocation, so we allocate a slab of integers - the `index` - with the same length as the set of boids. In a slab of memory called `ranges`, we separately track the offsets and sizes of each cell into the `index`, such that the `index` itself stores the concatenation of all the cells' lists. For example, if cell 0 stores the boids `[13, 0, 4, 3]`, and cell 1 stores the boids `[9, 12, 1]`, then the `ranges` slab would look like `[(0, 4), (4, 3), ...]`, and the `index` would look like `[13, 0, 4, 3, 9, 12, 1]`.
+
+This algorithm has a best-case time complexity of O(N), and a worst-case of O(N<sup>2</sup>).
+
+Switch to this implementation by pressing `s` then `i`.
+
+### preaggregated spatial indexing
+
+This implementation extends the spatial indexing implementation. Instead of each cell storing only the boids in that cell, each cell stores the boids its immediate nine cell area, such that each boid need only look at its current cell to find all influence candidates.
+
+Switch to this implementation by pressing `s` twice.
 
 license
 -------
