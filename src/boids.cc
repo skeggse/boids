@@ -570,11 +570,10 @@ static void setup() {
 
   state.buffers.boid[0].write(boids, sizeof(boid) * numBoids);
   state.buffers.boid[1].write(NULL, sizeof(boid) * numBoids);
-  allocateBoidBuffers();
-
   delete[] boids;
 
   allocateCellBuffers();
+  allocateBoidBuffers();
 
   state.buffers.uniform.bind(0);
   state.buffers.uniform.bind();
