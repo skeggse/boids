@@ -1,0 +1,90 @@
+#version 430 core
+
+layout (std430, binding = 0) restrict readonly buffer BoidIn {
+  vec4 boidIn[];
+};
+
+layout (std430, binding = 1) restrict writeonly buffer BoidOut {
+  vec4 boidOut[];
+};
+
+layout (std430, binding = 4) restrict readonly buffer BoidRanges {
+  uint boidRanges[];
+};
+
+layout (std430, binding = 5) restrict readonly buffer BoidIndex {
+  uint boidIndex[];
+};
+
+layout (std140, binding = 0) uniform SimParams {
+  mat4 projection;
+  vec2 winScale;
+  uvec2 cellCounts;
+  uint numBoids, cellCount;
+  float cellSize, mapRatio,
+    edgeDist, edgeFactor,
+    separateDist2, separateFactor,
+    alignDist2, alignFactor,
+    attractDist2, attractFactor,
+    maxSpeed;
+};
+
+layout (local_size_x = 128) in;
+
+float negativeEdgeDist = -edgeDist;
+
+void main() {
+  uint x = gl_GlobalInvocationID.x;
+
+  if (x >= numBoids) return;
+
+  vec4 boid = boidIn[x];
+  vec2 loc = boid.xy, vel = boid.zw;
+
+  // assuming no logic issues with the spatial indexing, the counts will be
+  // strictly greater than zero because every boid will at least compute the
+  // loop for itself
+  vec2 align = vec2(0.0f, 0.0f), attract = vec2(0.0f, 0.0f);
+  float alignCount = 0.0f, attractCount = 0.0f;
+
+  uvec2 cell = uvec2(loc * mapRatio);
+  uint cellNum = (cell.x + cell.y * cellCounts.x) % cellCount;
+
+  uint cellIndex = cellNum * 2;
+  uint i = boidRanges[cellIndex], last = i + boidRanges[cellIndex + 1];
+  for (; i < last; ++i) {
+    vec4 otherBoid = boidIn[boidIndex[i]];
+    vec2 otherLoc = otherBoid.xy, otherVel = otherBoid.zw;
+
+    vec2 diff = loc - otherLoc;
+    float dist2 = dot(diff, diff);
+
+    // we have to use mix because division by zero would give us infinity, and
+	// we need to avoid that entirely - this happens when i == j, and rarely
+	// otherwise
+    vel += mix(diff * (separateFactor / dist2), vec2(0.0f, 0.0f), dist2 == 0.0f || dist2 > separateDist2);
+
+    // alignDist < dist2 ? 0.0f : 1.0f
+    float isNear = step(dist2, alignDist2);
+    alignCount += isNear;
+    align += otherVel * isNear;
+
+	// TODO: don't run this line when alignDist2 == attractDist2
+    isNear = step(dist2, attractDist2);
+    attractCount += isNear;
+    attract += otherLoc * isNear;
+  }
+
+  // apply alignment, attraction, and edge avoidance to the velocity
+  vel += (align / alignCount) * alignFactor
+    + (attract / attractCount - loc) * attractFactor
+    + (step(negativeEdgeDist, -loc) - step(negativeEdgeDist, loc - winScale)) * edgeFactor;
+
+  //vel += (attract / attractCount - loc) * attractFactor;
+  //vel += (step(negativeEdgeDist, -loc) - step(negativeEdgeDist, loc - winScale)) * edgeFactor;
+
+  // reduce speed to match maxSpeed, when necessary
+  vel *= min(1.0f, maxSpeed / length(vel));
+
+  boidOut[x] = vec4(loc + vel, vel);
+}

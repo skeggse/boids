@@ -1,0 +1,50 @@
+#version 430 core
+
+layout (std430, binding = 2) restrict readonly buffer BoidCounts {
+  uint boidCounts[];
+};
+
+layout (std430, binding = 3) restrict buffer BoidOffsets {
+  uint boidOffsets[];
+};
+
+layout (std430, binding = 4) restrict readonly buffer BoidRanges {
+  uint boidRanges[];
+};
+
+layout (std430, binding = 5) restrict buffer BoidIndex {
+  uint boidIndex[];
+};
+
+layout (std140, binding = 0) uniform SimParams {
+  mat4 projection;
+  vec2 winScale;
+  uvec2 cellCounts;
+  uint numBoids, cellCount;
+  float cellSize, mapRatio,
+    edgeDist, edgeFactor,
+    separateDist2, separateFactor,
+    alignDist2, alignFactor,
+    attractDist2, attractFactor,
+    maxSpeed;
+};
+
+layout (local_size_x = 128, local_size_y = 8, local_size_z = 1) in;
+
+void main() {
+  uint cellNum = gl_GlobalInvocationID.x;
+
+  if (cellNum >= cellCount) return;
+
+  uint y = gl_LocalInvocationID.y;
+  y += uint(step(4, y));
+
+  uint destCellNum = (cellNum + y % 3 - 1 + (y / 3 - 1) * cellCounts.x + cellCount) % cellCount;
+  uint count = boidCounts[cellNum],
+	srcOffset = boidRanges[cellNum * 2],
+	destOffset = atomicAdd(boidOffsets[destCellNum], count);
+
+  for (uint i = 0; i < count; ++i) {
+    boidIndex[destOffset + i] = boidIndex[srcOffset + i];
+  }
+}
