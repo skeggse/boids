@@ -67,9 +67,6 @@ void main() {
     + (attract / attractCount - loc) * attractFactor
     + (step(negativeEdgeDist, -loc) - step(negativeEdgeDist, loc - winScale)) * edgeFactor;
 
-  //vel += (attract / attractCount - loc) * attractFactor;
-  //vel += (step(negativeEdgeDist, -loc) - step(negativeEdgeDist, loc - winScale)) * edgeFactor;
-
   // reduce speed to match maxSpeed, when necessary
   vel *= min(1.0f, maxSpeed / length(vel));
 
