@@ -18,9 +18,6 @@
           },
           "Debug_x64": {
             "msvs_configuration_platform": "x64",
-            "variables": {
-              "lib_platform": "x64"
-            },
             "library_dirs": [
               "dependencies/freeglut/lib/x64",
               "dependencies/glew/lib/Release/x64"
@@ -35,9 +32,6 @@
           },
           "Release_x64": {
             "msvs_configuration_platform": "x64",
-            "variables": {
-              "lib_platform": "x64"
-            },
             "library_dirs": [
               "dependencies/freeglut/lib/x64",
               "dependencies/glew/lib/Release/x64"
@@ -85,7 +79,7 @@
           "Release": {
             "xcode_settings": {
               "GCC_OPTIMIZATION_LEVEL": "3",
-              "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
+              "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO"
             }
           }
         }
@@ -172,7 +166,7 @@
               "-lglut",
               "-lGLEW"
             ]
-          },
+          }
         }]
       ]
     }
