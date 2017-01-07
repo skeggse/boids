@@ -10,22 +10,38 @@
         "default_configuration": "Release_x64",
         "configurations": {
           "Debug_x32": {
-            "msvs_configuration_platform": "Win32"
+            "msvs_configuration_platform": "Win32",
+            "library_dirs": [
+              "dependencies/freeglut/lib/Win32",
+              "dependencies/glew/lib/Release/Win32"
+            ]
           },
           "Debug_x64": {
             "msvs_configuration_platform": "x64",
             "variables": {
               "lib_platform": "x64"
-            }
+            },
+            "library_dirs": [
+              "dependencies/freeglut/lib/x64",
+              "dependencies/glew/lib/Release/x64"
+            ]
           },
           "Release_x32": {
-            "msvs_configuration_platform": "Win32"
+            "msvs_configuration_platform": "Win32",
+            "library_dirs": [
+              "dependencies/freeglut/lib/Win32",
+              "dependencies/glew/lib/Release/Win32"
+            ]
           },
           "Release_x64": {
             "msvs_configuration_platform": "x64",
             "variables": {
               "lib_platform": "x64"
-            }
+            },
+            "library_dirs": [
+              "dependencies/freeglut/lib/x64",
+              "dependencies/glew/lib/Release/x64"
+            ]
           }
         }
       }
@@ -129,8 +145,8 @@
             {
               "destination": "<(PRODUCT_DIR)",
               "files": [
-                "dependencies/freeglut/freeglut.dll",
-                "dependencies/glew/bin/Release/<(lib_platform)/glew32.dll"
+                "dependencies/freeglut/bin/$(PlatformName)/freeglut.dll",
+                "dependencies/glew/bin/Release/$(PlatformName)/glew32.dll"
               ]
             }
           ],
@@ -145,10 +161,6 @@
               "-lglew32s",
               "-lopengl32",
               "-lglu32"
-            ],
-            "library_dirs": [
-              "dependencies/freeglut/lib",
-              "dependencies/glew/lib/Release/<(lib_platform)"
             ]
           }
         }, {
