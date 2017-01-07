@@ -27,7 +27,7 @@ $ make
 
 ### windows
 
-Check out the [prebuilt binary](https://github.com/skeggse/boids/releases) copy of this application.
+Check out the [prebuilt binary](https://github.com/skeggse/boids/releases) copy of this application (you'll need the [redistributable package](https://www.microsoft.com/en-us/download/details.aspx?id=48145) for Visual C++ 2015).
 
 ```sh
 $ gyp boids.gyp -f msvs --depth=. --generator-output out
