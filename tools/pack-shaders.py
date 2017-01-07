@@ -9,7 +9,7 @@ if len(argv) < 3:
   print('usage: pack-shaders.py <c preprocessor command> <output directory> [<source> ...]')
   exit(1)
 
-cpp = argv[1].split(' ')
+cpp = argv[1][1:].split(' ')
 dest = argv[2]
 src = itertools.islice(argv, 3, len(argv))
 

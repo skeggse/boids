@@ -2,9 +2,9 @@
   "conditions": [
     ["OS=='win'", {
       "variables": {
-        "lib_platform%": "Win32",
-        # must be space-delimited
-        "cpreprocessor": "cl -EP"
+        # for no documented reason, gyp decides to make cpp relative, so we add
+        # the /, and strip it off in python
+        "cpreprocessor": ["/cl", "-EP"]
       },
       "target_defaults": {
         "default_configuration": "Release_x64",
@@ -47,8 +47,9 @@
       }
     }, {
       "variables": {
-        # must be space-delimited
-        "cpreprocessor": "cpp -P"
+        # for no documented reason, gyp decides to make cpp relative, so we add
+        # the /, and strip it off in python
+        "cpreprocessor": ["/cpp", "-P"]
       },
       "target_defaults": {
         "default_configuration": "Release",
