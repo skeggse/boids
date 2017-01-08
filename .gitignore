@@ -1,2 +1,8 @@
 *.intermediate
 /out
+/src/out
+Makefile
+*.Makefile
+*.target.mk
+*.pkg.tar.xz
+/pkg
