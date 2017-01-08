@@ -50,6 +50,10 @@ static const char* ErrorString(GLenum error) {
   return msg;
 }
 
+#ifdef __GNUC__
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wunused-function"
+#endif
 static void _CheckError(const char* file, int line) {
   GLenum error = glGetError();
 
@@ -57,5 +61,8 @@ static void _CheckError(const char* file, int line) {
     fprintf(stderr, "[%s:%d] %s\n", file, line, ErrorString(error));
   } while ((error = glGetError()) != GL_NO_ERROR);
 }
+#ifdef __GNUC__
+#  pragma GCC diagnostic pop
+#endif
 
 #define CheckError() _CheckError(__FILE__, __LINE__)
