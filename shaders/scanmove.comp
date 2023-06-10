@@ -78,5 +78,5 @@ void main() {
   // reduce speed to match maxSpeed, when necessary
   vel *= min(1.0f, maxSpeed / length(vel));
 
-  boidOut[x] = vec4(loc + vel, vel);
+  boidOut[x] = vec4(loc + vel / 7.0f, vel);
 }

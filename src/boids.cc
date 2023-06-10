@@ -34,6 +34,12 @@ enum Impl {
   SPREAD_INDEX
 };
 
+enum InputUse {
+  I_NONE,
+  I_NUM_BOIDS,
+  I_NUM_STEPS
+};
+
 static struct State {
   Params params;
   Buffers buffers;
@@ -50,14 +56,14 @@ static struct State {
   GLuint nextQueryNum;
 
   // settings
-  bool paused, lockFramerate, printTiming,
-    changingNumBoids, changingImpl;
-  GLuint numBoidsIn;
+  bool paused, lockFramerate, printTiming, changingImpl;
+  GLuint inputIn;
+  enum InputUse inputUse;
 
-  bool timerActive;
+  bool timerActive, pauseAtFrame, wasFramerateLocked;
 
   uint32_t lastTime;
-  uint64_t frameOffset;
+  uint64_t frameOffset, frameNumber, pauseFrame;
 
   enum Impl impl;
 
@@ -67,10 +73,10 @@ static struct State {
     uniform_x, uniform_y;
   int lastDistW, lastDistH;
 
-  State(const bool predictable) : offsets(NULL), ranges(NULL),
-      nextQueryNum(0),
-      timerActive(false), frameOffset(0), impl(SPREAD_INDEX),
-      uniform_angle(0, GLfloat(2 * M_PI)), lastDistW(0), lastDistH(0) {
+  State(const bool predictable) : offsets(NULL), ranges(NULL), nextQueryNum(0),
+      timerActive(false), pauseAtFrame(false), frameOffset(0), frameNumber(0),
+      impl(SPREAD_INDEX), uniform_angle(0, GLfloat(2 * M_PI)),
+      lastDistW(0), lastDistH(0) {
     if (predictable) {
       random_eng = default_random_engine();
     } else {
@@ -229,8 +235,17 @@ static void display() {
   glutSwapBuffers();
 }
 
+static void pause();
+
 static void update() {
   ++state.frameOffset;
+  ++state.frameNumber;
+
+  if (state.pauseAtFrame && state.frameNumber >= state.pauseFrame) {
+    pause();
+    state.lockFramerate = state.wasFramerateLocked;
+    state.pauseAtFrame = false;
+  }
 
   state.buffers.boid[state.activeBuffer].bind(0);
   state.buffers.boid[state.activeBuffer ^ 1].bind(1);
@@ -447,9 +462,20 @@ static void keyboardCallback(unsigned char key, int x, int y) {
       changeImpl(BRUTE);
       break;
     }
-    state.changingNumBoids = !state.changingNumBoids;
-    if (state.changingNumBoids) {
-      state.numBoidsIn = 0;
+
+    if (state.inputUse == I_NUM_BOIDS) {
+      state.inputUse = I_NONE;
+    } else {
+      state.inputUse = I_NUM_BOIDS;
+      state.inputIn = 0;
+    }
+    break;
+  case 'r':
+    if (state.inputUse == I_NUM_STEPS) {
+      state.inputUse = I_NONE;
+    } else {
+      state.inputUse = I_NUM_STEPS;
+      state.inputIn = 0;
     }
     break;
   case '0':
@@ -462,16 +488,18 @@ static void keyboardCallback(unsigned char key, int x, int y) {
   case '7':
   case '8':
   case '9':
-    if (state.changingNumBoids) {
-      state.numBoidsIn = state.numBoidsIn * 10 + (key - '0');
-      cout << "numBoidsIn: " << state.numBoidsIn << endl;
+    if (state.inputUse != I_NONE) {
+      state.inputIn = state.inputIn * 10 + (key - '0');
+      cout << "input: " << state.inputIn << endl;
     }
     break;
   case KEY_ENTER:
-    if (state.changingNumBoids) {
-      state.changingNumBoids = false;
+    switch (state.inputUse) {
+    case I_NONE: break;
+    case I_NUM_BOIDS:
+    {
       GLuint oldNumBoids = state.params.numBoids;
-      state.params.numBoids = state.numBoidsIn;
+      state.params.numBoids = state.inputIn;
       resizeBoidBuffers();
       if (state.params.numBoids > oldNumBoids) {
         GLuint newBoids = state.params.numBoids - oldNumBoids;
@@ -486,7 +514,17 @@ static void keyboardCallback(unsigned char key, int x, int y) {
         delete[] boids;
       }
       state.buffers.uniform.write(&state.params, sizeof(state.params));
+      break;
     }
+    case I_NUM_STEPS:
+      state.wasFramerateLocked = state.lockFramerate;
+      state.lockFramerate = false;
+      state.pauseAtFrame = true;
+      state.pauseFrame = state.frameNumber + state.inputIn;
+      resume(false);
+      break;
+    }
+    state.inputUse = I_NONE;
     break;
   }
 }
@@ -580,7 +618,8 @@ static void setup() {
   state.buffers.uniform.write(&state.params, sizeof(state.params));
 
   // sets white as color used to clear screen
-  glClearColor(1.0, 1.0, 1.0, 1.0);
+  //glClearColor(1.0, 1.0, 1.0, 1.0);
+  glClearColor(0.0, 0.0, 0.0, 1.0);
 }
 
 static void displayInfo(const int argc, char * const argv[]) {
@@ -626,9 +665,10 @@ int main(int argc, char *argv[]) {
   state.ranges = NULL;
 
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-  glutInitWindowSize(state.winWidth, state.winHeight);
+  // glutInitWindowSize(state.winWidth, state.winHeight);
   // glutInitWindowPosition(448, 156);
   glutCreateWindow("Boids");
+  glutFullScreen();
 
   // use opengl extensions
   glewInit();
@@ -640,7 +680,7 @@ int main(int argc, char *argv[]) {
   glutReshapeFunc(resize);
   glutKeyboardFunc(keyboardCallback);
 
-  state.paused = false;
+  state.paused = true;
   state.lockFramerate = true;
   state.printTiming = false;
 
